@@ -27,11 +27,12 @@ jobs:
           libpulse-dev libasound2-dev libdbus-1-dev \
           libgl1-mesa-dev libegl1-mesa-dev libglvnd-dev libdrm-dev libgbm-dev \
           libx11-dev libxext-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev \
-          libwayland-dev wayland-protocols libdecor-0-dev
+          libwayland-dev wayland-protocols libdecor-0-dev libudev-dev clang
 
     - name: Configure
       run: |
         cmake -G Ninja -B build \
+          -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS="-U_FORTIFY_SOURCE" \
           -DCMAKE_CXX_FLAGS="-U_FORTIFY_SOURCE" \

@@ -63,7 +63,7 @@ jobs:
         BIN=$(find build -type f -name mcpelauncher-client -perm /111 | head -1)
         cp "$BIN" pkg/mcpelauncher-client
         find . -maxdepth 2 -name 'gamecontrollerdb.txt' -exec cp {} pkg/ \; || true
-        cp -r mcpelauncher-linux-bin/fmod pkg/ 2>/dev/null || true
+        cp -r mcpelauncher-linux-bin/lib pkg/natives-linux-bin || { echo "linux-bin libs missing"; exit 1; }
         tar czf "mcpelauncher-client-${SHA}.tar.gz" -C pkg .
         echo "PKG=mcpelauncher-client-${SHA}.tar.gz" >> $GITHUB_ENV
 

@@ -1,0 +1,64 @@
+name: fork-build
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Init submodules
+      run: |
+        git submodule sync --recursive
+        git submodule update --init --recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          build-essential cmake ninja-build pkg-config git \
+          autoconf libtool nasm zlib1g-dev libssl-dev \
+          libpulse-dev libasound2-dev libdbus-1-dev \
+          libgl1-mesa-dev libegl1-mesa-dev libglvnd-dev libdrm-dev libgbm-dev \
+          libx11-dev libxext-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev \
+          libwayland-dev wayland-protocols libdecor-0-dev
+
+    - name: Configure
+      run: |
+        cmake -G Ninja -B build \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_CLIENT=ON -DBUILD_UI=OFF -DBUILD_WEBVIEW=OFF \
+          -DGAMEWINDOW_SYSTEM=SDL3 -DUSE_SDL3_AUDIO=ON \
+          -DUSE_OWN_CURL=ON -DUSE_GAMECONTROLLERDB=ON \
+          -DXAL_WEBVIEW_USE_QT=OFF -DXAL_WEBVIEW_USE_CLI=OFF \
+          -DENABLE_DEV_PATHS=ON
+
+    - name: Build
+      run: cmake --build build -j
+
+    - name: Smoke
+      run: ./build/mcpelauncher-client --version
+
+    - name: Package
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        SHA=${GITHUB_SHA::7}
+        mkdir -p pkg
+        cp build/mcpelauncher-client pkg/
+        find . -maxdepth 2 -name 'gamecontrollerdb.txt' -exec cp {} pkg/ \; || true
+        cp -r mcpelauncher-linux-bin/fmod pkg/ 2>/dev/null || true
+        tar czf "mcpelauncher-client-${SHA}.tar.gz" -C pkg .
+        echo "PKG=mcpelauncher-client-${SHA}.tar.gz" >> $GITHUB_ENV
+
+    - name: Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: mcpelauncher-client-*.tar.gz
+        fail_on_unmatched_files: true
